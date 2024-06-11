@@ -1,0 +1,33 @@
+{
+  "name": "hadith-api",
+  "version": "1.0.0",
+  "description": "hadith api based on sunnah.com",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "hadith",
+    "api",
+    "sunnah"
+  ],
+  "author": "أحمد الطبراني (Ahmed El-Tabarani)",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "express-rate-limit": "^6.9.0",
+    "html-entities": "^2.3.3",
+    "linkedom": "^0.14.25",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.6.9"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  },
+  "engines": {
+    "node": "16.14.0",
+    "npm": "8.3.1"
+  }
+}
