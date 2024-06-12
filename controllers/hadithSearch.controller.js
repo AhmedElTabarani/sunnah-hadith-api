@@ -90,15 +90,13 @@ class HadithSearchController {
         const { hadithNumberInBook, hadithNumberInCollection } =
           getReferenceValues(reference);
 
-        let collectionId = collection
+        const collectionId = collection
           .getAttribute('href')
           .split('/')
           .at(-1);
 
-        collectionId =
-          collectionId === '-1' ? 'introduction' : collectionId;
-
-        const bookId = book.getAttribute('href').split('/').at(-1);
+        let bookId = book.getAttribute('href').split('/').at(-1);
+        bookId = bookId === '-1' ? 'introduction' : bookId;
 
         return {
           english: {
@@ -116,13 +114,17 @@ class HadithSearchController {
             collectionId,
             book: book.textContent.trim(),
             bookId,
+            hadithNumberInBook,
+            hadithNumberInCollection,
             sunnahWebsite: {
               hadith: hadithNumberInCollection
                 ? `https://sunnah.com/${collectionId}:${hadithNumberInCollection}`
                 : undefined,
               collection: `https://sunnah.com/${collectionId}`,
               book: `https://sunnah.com/${collectionId}/${bookId}`,
-              hadithInBook: `https://sunnah.com/${collectionId}/${bookId}/${hadithNumberInBook}`,
+              hadithInBook: hadithNumberInBook
+                ? `https://sunnah.com/${collectionId}/${bookId}/${hadithNumberInBook}`
+                : undefined,
             },
           },
         };
