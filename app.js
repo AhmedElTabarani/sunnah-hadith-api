@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 
+const docs = require('./docs');
 const hadithSearchRouter = require('./routes/hadithSearch.routes');
 
 const config = require('./config/config');
@@ -39,6 +40,11 @@ app.use((req, res, next) => {
   req.query.page = +req.query.page;
   next();
 });
+
+app.get('/', (req, res, next) => {
+  res.status(302).redirect('/docs');
+});
+app.get('/docs', docs);
 
 app.use('/v1', hadithSearchRouter);
 

@@ -31,6 +31,10 @@ class HadithSearchController {
 
     const allHadith = doc.querySelector('.AllHadith');
 
+    if (!allHadith) {
+      return sendSuccess(res, 200, [], {});
+    }
+
     const numberOfHadith = +allHadith
       .querySelector('span')
       .textContent.split(' ')
@@ -48,7 +52,7 @@ class HadithSearchController {
         if (req.isRemoveHTML) {
           englishHadith = info
             .querySelector('.text_details')
-            .textContent.trim();
+            ?.textContent.trim();
 
           englishGrade = info
             .querySelector('.english_grade')
@@ -56,7 +60,7 @@ class HadithSearchController {
 
           arabicHadith = info
             .querySelector('.arabic_text_details')
-            .textContent.trim();
+            ?.textContent.trim();
 
           arabicGrade = info
             .querySelector('.arabic_grade')
@@ -64,7 +68,7 @@ class HadithSearchController {
         } else {
           englishHadith = info
             .querySelector('.text_details')
-            .innerHTML.trim();
+            ?.innerHTML.trim();
 
           englishGrade = info
             .querySelector('.english_grade')
@@ -72,7 +76,7 @@ class HadithSearchController {
 
           arabicHadith = info
             .querySelector('.arabic_text_details')
-            .innerHTML.trim();
+            ?.innerHTML.trim();
 
           arabicGrade = info
             .querySelector('.arabic_grade')
@@ -137,6 +141,7 @@ class HadithSearchController {
       length: result.length,
       numberOfHadith,
       removeHTML: req.isRemoveHTML,
+      page: req.query.page,
       numberOfPages: Math.ceil(numberOfHadith / 100),
     };
     cache.set(`metadata:${url}`, metadata);
