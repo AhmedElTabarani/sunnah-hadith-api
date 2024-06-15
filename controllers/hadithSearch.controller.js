@@ -6,6 +6,10 @@ const catchAsync = require('../utils/catchAsync');
 const sendSuccess = require('../utils/sendSuccess');
 const cache = require('../utils/cache');
 const getReferenceValues = require('../utils/getReferenceValues');
+const getOneActualHadithContainer = require('../utils/getOneHadith');
+const getHadithInfoText = require('../utils/getHadithInfoText');
+const getHadithInfoHTML = require('../utils/getHadithInfoHTML');
+const getReferenceUrlInfo = require('../utils/getReferenceUrlInfo');
 
 class HadithSearchController {
   searchUsingSiteSunnah = catchAsync(async (req, res, next) => {
@@ -35,7 +39,7 @@ class HadithSearchController {
       return sendSuccess(res, 200, [], {});
     }
 
-    const numberOfHadith = +allHadith
+    const totalOfHadith = +allHadith
       .querySelector('span')
       .textContent.split(' ')
       .at(-1);
@@ -45,50 +49,31 @@ class HadithSearchController {
         const [collection, book] =
           info.querySelectorAll('.nounderline');
 
-        let englishHadith;
-        let arabicHadith;
-        let arabicGrade;
-        let englishGrade;
-        if (req.isRemoveHTML) {
-          englishHadith = info
-            .querySelector('.text_details')
-            ?.textContent.trim();
+        const {
+          englishHadithNarrated,
+          englishHadith,
+          englishFullHadith,
+          englishGrade,
+          arabicHadithNarrated,
+          arabicHadith,
+          arabicFullHadith,
+          arabicGrade,
+        } = req.isRemoveHTML
+          ? getHadithInfoText(info)
+          : getHadithInfoHTML(info);
 
-          englishGrade = info
-            .querySelector('.english_grade')
-            ?.nextElementSibling.textContent.trim();
-
-          arabicHadith = info
-            .querySelector('.arabic_text_details')
-            ?.textContent.trim();
-
-          arabicGrade = info
-            .querySelector('.arabic_grade')
-            ?.textContent.trim();
-        } else {
-          englishHadith = info
-            .querySelector('.text_details')
-            ?.innerHTML.trim();
-
-          englishGrade = info
-            .querySelector('.english_grade')
-            ?.nextElementSibling.innerHTML.trim();
-
-          arabicHadith = info
-            .querySelector('.arabic_text_details')
-            ?.innerHTML.trim();
-
-          arabicGrade = info
-            .querySelector('.arabic_grade')
-            ?.innerHTML.trim();
-        }
-
-        const englishHadithNarrated = info.querySelector(
-          '.hadith_narrated',
-        );
-
-        const arabicHadithNarrated =
-          info.querySelector('.arabic_sanad');
+        const english = {
+          hadithNarrated: englishHadithNarrated,
+          hadith: englishHadith,
+          fullHadith: englishFullHadith,
+          grade: englishGrade,
+        };
+        const arabic = {
+          hadithNarrated: arabicHadithNarrated,
+          hadith: arabicHadith,
+          fullHadith: arabicFullHadith,
+          grade: arabicGrade,
+        };
 
         const reference = info.querySelector('.hadith_reference');
         const { hadithNumberInBook, hadithNumberInCollection } =
@@ -99,37 +84,19 @@ class HadithSearchController {
           .split('/')
           .at(-1);
 
-        let bookId = book.getAttribute('href').split('/').at(-1);
-        bookId = bookId === '-1' ? 'introduction' : bookId;
-
+        const bookId = book.getAttribute('href').split('/').at(-1);
         return {
-          english: {
-            hadithNarrated: englishHadithNarrated?.textContent.trim(),
-            hadith: englishHadith,
-            grade: englishGrade,
-          },
-          arabic: {
-            hadithNarrated: arabicHadithNarrated?.textContent.trim(),
-            hadith: arabicHadith,
-            grade: arabicGrade,
-          },
+          collection: collection.textContent.trim(),
+          book: book.textContent.trim(),
+          english,
+          arabic,
           reference: {
-            collection: collection.textContent.trim(),
-            collectionId,
-            book: book.textContent.trim(),
-            bookId,
-            hadithNumberInBook,
-            hadithNumberInCollection,
-            sunnahWebsite: {
-              hadith: hadithNumberInCollection
-                ? `https://sunnah.com/${collectionId}:${hadithNumberInCollection}`
-                : undefined,
-              collection: `https://sunnah.com/${collectionId}`,
-              book: `https://sunnah.com/${collectionId}/${bookId}`,
-              hadithInBook: hadithNumberInBook
-                ? `https://sunnah.com/${collectionId}/${bookId}/${hadithNumberInBook}`
-                : undefined,
-            },
+            ...getReferenceUrlInfo(
+              collectionId,
+              bookId,
+              hadithNumberInBook,
+              hadithNumberInCollection,
+            ),
           },
         };
       },
@@ -138,12 +105,265 @@ class HadithSearchController {
     cache.set(url, result);
 
     const metadata = {
-      length: result.length,
-      numberOfHadith,
-      removeHTML: req.isRemoveHTML,
+      numberOfHadith: result.length,
+      totalOfHadith,
       page: req.query.page,
-      numberOfPages: Math.ceil(numberOfHadith / 100),
+      numberOfPages: Math.ceil(totalOfHadith / 100),
+      removeHTML: req.isRemoveHTML,
     };
+    cache.set(`metadata:${url}`, metadata);
+
+    sendSuccess(res, 200, result, {
+      ...metadata,
+      isCached: false,
+    });
+  });
+
+  getOneBookInCollectionUsingSiteSunnah = catchAsync(
+    async (req, res, next) => {
+      const { collectionId, bookId } = req.params;
+      const url = `https://sunnah.com/${collectionId}/${bookId}`;
+
+      if (cache.has(url)) {
+        const result = cache.get(url);
+        return sendSuccess(res, 200, result, {
+          ...cache.get(`metadata:${url}`),
+          isCached: true,
+        });
+      }
+
+      const data = await nodeFetch(url);
+      const html = decode(await data.text());
+      const doc = parseHTML(html).document;
+
+      const note = doc
+        .querySelector(
+          'div[style="width: 85%; margin: auto; text-align: justify;"]',
+        )
+        ?.textContent.trim();
+
+      const AllHadith = doc.querySelector('.AllHadith');
+
+      const isSingleHadith =
+        AllHadith.className.includes('single_hadith');
+
+      if (isSingleHadith) {
+        const { result, metadata } = getOneActualHadithContainer(
+          doc,
+          collectionId,
+          bookId,
+          undefined,
+        );
+
+        cache.set(url, result);
+        cache.set(`metadata:${url}`, metadata);
+
+        sendSuccess(res, 200, result, {
+          ...metadata,
+          isCached: false,
+        });
+        return;
+      }
+
+      const elements = AllHadith.querySelectorAll(
+        'a[name], .chapter, .echapintro, .achapintro, .actualHadithContainer',
+      );
+
+      const groupedSections = new Map();
+      let currentSection = null;
+
+      elements.forEach((element) => {
+        if (
+          element.tagName.toLowerCase() === 'a' &&
+          element.hasAttribute('name')
+        ) {
+          const name = element.getAttribute('name');
+          if (/^C\d+\.\d+$/.test(name)) {
+            groupedSections.set(name, []);
+            currentSection = name;
+          }
+        } else if (element.tagName.toLowerCase() !== 'a') {
+          groupedSections.get(currentSection).push(element);
+        }
+      });
+
+      let numberOfHadith = 0;
+      const result = Array.from(groupedSections.values()).map(
+        (groupedSection) => {
+          let chapter = {};
+          let ahadith = [];
+          for (const section of groupedSection) {
+            if (section.className.includes('chapter')) {
+              const englishChapterName = section
+                .querySelector('.englishchapter')
+                ?.textContent.trim();
+              const arabicChapterName = section
+                .querySelector('.arabicchapter')
+                ?.textContent.trim();
+              chapter = {
+                english: {
+                  name: englishChapterName,
+                },
+                arabic: {
+                  name: arabicChapterName,
+                },
+              };
+            } else if (section.className.includes('achapintro')) {
+              chapter.arabic.intro = section.textContent;
+            } else if (section.className.includes('echapintro')) {
+              chapter.english.intro = section.textContent;
+            } else if (
+              section.className.includes('actualHadithContainer')
+            ) {
+              const {
+                englishHadithNarrated,
+                englishHadith,
+                englishFullHadith,
+                englishGrade,
+                arabicHadithNarrated,
+                arabicHadith,
+                arabicFullHadith,
+                arabicGrade,
+              } = getHadithInfoText(section);
+
+              const reference = section.querySelector(
+                '.hadith_reference',
+              );
+              const { hadithNumberInBook, hadithNumberInCollection } =
+                getReferenceValues(reference);
+
+              ahadith.push({
+                english: {
+                  hadithNarrated: englishHadithNarrated,
+                  hadith: englishHadith,
+                  fullHadith: englishFullHadith,
+                  grade: englishGrade,
+                },
+                arabic: {
+                  hadithNarrated: arabicHadithNarrated,
+                  hadith: arabicHadith,
+                  fullHadith: arabicFullHadith,
+                  grade: arabicGrade,
+                },
+                reference: {
+                  ...getReferenceUrlInfo(
+                    collectionId,
+                    bookId,
+                    hadithNumberInBook,
+                    hadithNumberInCollection,
+                  ),
+                },
+              });
+            }
+          }
+          numberOfHadith += ahadith.length;
+          return {
+            chapter,
+            numberOfHadith: ahadith.length,
+            ahadith,
+          };
+        },
+      );
+
+      cache.set(url, result);
+
+      const arabicBookName = doc
+        .querySelector('.book_page_arabic_name')
+        ?.textContent.trim();
+
+      const englishBookName = doc
+        .querySelector('.book_page_english_name')
+        ?.textContent.trim();
+
+      const englishBookIntro = doc
+        .querySelector('.ebookintro')
+        ?.textContent.trim();
+
+      const arabicBookIntro = doc
+        .querySelector('.abookintro')
+        ?.textContent.trim();
+
+      const metadata = {
+        collectionId,
+        bookId,
+        note,
+        english: {
+          bookName: englishBookName,
+          bookIntro: englishBookIntro,
+        },
+        arabic: {
+          bookName: arabicBookName,
+          bookIntro: arabicBookIntro,
+        },
+        numberOfHadith,
+        numberOfChapters: result.length,
+        page: req.query.page,
+      };
+      cache.set(`metadata:${url}`, metadata);
+
+      sendSuccess(res, 200, result, {
+        ...metadata,
+        isCached: false,
+      });
+    },
+  );
+
+  getOneHadithInBook = catchAsync(async (req, res, next) => {
+    const { collectionId, bookId, hadithId } = req.params;
+    const url = `https://sunnah.com/${collectionId}/${bookId}/${hadithId}`;
+
+    if (cache.has(url)) {
+      const result = cache.get(url);
+      return sendSuccess(res, 200, result, {
+        ...cache.get(`metadata:${url}`),
+        isCached: true,
+      });
+    }
+
+    const data = await nodeFetch(url);
+    const html = decode(await data.text());
+    const doc = parseHTML(html).document;
+
+    const { result, metadata } = getOneActualHadithContainer(
+      doc,
+      collectionId,
+      bookId,
+      hadithId,
+    );
+
+    cache.set(url, result);
+    cache.set(`metadata:${url}`, metadata);
+
+    sendSuccess(res, 200, result, {
+      ...metadata,
+      isCached: false,
+    });
+  });
+
+  getOneHadithInCollection = catchAsync(async (req, res, next) => {
+    const { collectionId, hadithId } = req.params;
+    const url = `https://sunnah.com/${collectionId}:${hadithId}`;
+
+    if (cache.has(url)) {
+      const result = cache.get(url);
+      return sendSuccess(res, 200, result, {
+        ...cache.get(`metadata:${url}`),
+        isCached: true,
+      });
+    }
+
+    const data = await nodeFetch(url);
+    const html = decode(await data.text());
+    const doc = parseHTML(html).document;
+
+    const { result, metadata } = getOneActualHadithContainer(
+      doc,
+      collectionId,
+      undefined,
+      hadithId,
+    );
+
+    cache.set(url, result);
     cache.set(`metadata:${url}`, metadata);
 
     sendSuccess(res, 200, result, {
