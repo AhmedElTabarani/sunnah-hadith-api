@@ -1,36 +1,37 @@
-const express = require('express');
-const rateLimit = require('express-rate-limit');
-const cors = require('cors');
+const express = require("express");
+const rateLimit = require("express-rate-limit");
+const cors = require("cors");
 
-const docs = require('./docs');
-const hadithSearchRouter = require('./routes/hadithSearch.routes');
+const docs = require("./docs");
+const hadithSearchRouter = require("./routes/hadithSearch.routes");
 
-const config = require('./config/config');
+const config = require("./config/config");
+const AppError = require("./utils/AppError");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 app.use(cors());
+app.use(express.json({ limit: config.expressJsonLimit }));
+
+// Rate Limiting
 app.use(
   rateLimit({
     windowMs: config.rateLimitEach,
     max: config.rateLimitMax,
-    message: 'Rate limit exceeded. Please try again later.',
+    message: "Rate limit exceeded. Please try again later.",
     handler: (req, res, next, option) => {
-      res.status(429).json({
-        status: 'error',
-        message: option.message,
-      });
+      next(new AppError(option.message, 429));
     },
   }),
 );
-
-const port = process.env.PORT || config.port || 3000;
 
 // to delete elements from hadith text or not
 // including this `<span class="search-keys">...</span>`
 app.use((req, res, next) => {
   req.isRemoveHTML = req.query.removehtml || true;
-  req.isRemoveHTML =
-    req.query.removehtml?.toLowerCase() === 'false' ? false : true;
+  req.isRemoveHTML = req.query.removehtml?.toLowerCase() === "false"
+    ? false
+    : true;
   next();
 });
 
@@ -41,27 +42,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (req, res, next) => {
-  res.status(302).redirect('/docs');
+app.get("/", (req, res, next) => {
+  res.status(302).redirect("/docs");
 });
-app.get('/docs', docs);
+app.get("/docs", docs);
 
-app.use('/v1', hadithSearchRouter);
+app.use("/v1", hadithSearchRouter);
 
-app.get('*', (req, res, next) => {
-  res.status(404).json({
-    status: 'error',
-    message: 'There is no router for this url, Please check /docs',
-  });
+app.all("*", (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-app.use((err, req, res, next) => {
-  res.status(400).json({
-    status: 'error',
-    message: err.message,
-  });
-});
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = "development";
+}
 
-app.listen(port, () =>
-  console.log(`Server is listening at http://localhost:${port}`),
-);
+app.use(errorHandler);
+
+module.exports = app;

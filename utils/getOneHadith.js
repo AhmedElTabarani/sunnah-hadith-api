@@ -1,48 +1,46 @@
-const getHadithInfoText = require('./getHadithInfoText');
-const getReferenceUrlInfo = require('./getReferenceUrlInfo');
+const AppError = require("./AppError");
+const getHadithInfoText = require("./getHadithInfoText");
+const getReferenceUrlInfo = require("./getReferenceUrlInfo");
 
 module.exports = (doc, collectionId, bookId, hadithId) => {
-  const hadithNumberInCollection =
-    bookId == 'introduction'
-      ? '1'
-      : doc
-          .querySelector('.crumbs')
-          ?.textContent.split('» Hadith')
-          .at(-1)
-          .replaceAll(' ', '');
+  const hadithNumberInCollection = bookId == "introduction" ? "1" : doc
+    .querySelector(".crumbs")
+    ?.textContent.split("» Hadith")
+    .at(-1)
+    .replaceAll(" ", "");
 
   const arabicBookName = doc
-    .querySelector('.book_page_arabic_name')
+    .querySelector(".book_page_arabic_name")
     ?.textContent.trim();
 
   const englishBookName = doc
-    .querySelector('.book_page_english_name')
+    .querySelector(".book_page_english_name")
     ?.textContent.trim();
 
   const englishBookIntro = doc
-    .querySelector('.ebookintro')
+    .querySelector(".ebookintro")
     ?.textContent.trim();
 
   const arabicBookIntro = doc
-    .querySelector('.abookintro')
+    .querySelector(".abookintro")
     ?.textContent.trim();
 
-  const AllHadith = doc.querySelector('.AllHadith');
+  const AllHadith = doc.querySelector(".AllHadith");
 
   if (!AllHadith) {
-    throw new Error('No result');
+    throw new AppError("Hadith not found", 404);
   }
 
-  const chapter = AllHadith.querySelector('.chapter');
+  const chapter = AllHadith.querySelector(".chapter");
 
   const englishChapterName = chapter
-    ?.querySelector('.englishchapter')
+    ?.querySelector(".englishchapter")
     ?.textContent.trim();
   const arabicChapterName = chapter
-    ?.querySelector('.arabicchapter')
+    ?.querySelector(".arabicchapter")
     ?.textContent.trim();
 
-  const hadith = AllHadith.querySelector('.actualHadithContainer');
+  const hadith = AllHadith.querySelector(".actualHadithContainer");
 
   const {
     englishHadith,

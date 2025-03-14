@@ -1,18 +1,23 @@
 # Sunnah Hadith API
 
-هذ `API` بسيطة يقوم بسحب البيانات من موقع sunnah.com  
-ميزته أنه يوفر البحث ن الاحاديث سواء بنص عربي أو انجليزي والنتائج تكون مترجمة باللغة العربية والإنجليزية
+هذ `API` بسيطة يقوم بسحب البيانات من موقع sunnah.com\
+ميزته أنه يوفر البحث ن الاحاديث سواء بنص عربي أو انجليزي والنتائج تكون مترجمة
+باللغة العربية والإنجليزية
 
 ## تنبيه
 
-> المشروع ليس مرفوعًا على أي سيرفر وقد يشهد تغييرات كبيرة وجزرية بشكل متكررة. لذلك، يُنصح بعمل `fork` أو `clone` له بدلاً من الاعتماد على سحب التحديثات منه بشكل مباشر، لذا أرجو أن تستخدم النسخة الخاصة بك
+> المشروع ليس مرفوعًا على أي سيرفر وقد يشهد تغييرات كبيرة وجزرية بشكل متكررة.
+> لذلك، يُنصح بعمل `fork` أو `clone` له بدلاً من الاعتماد على سحب التحديثات منه
+> بشكل مباشر، لذا أرجو أن تستخدم النسخة الخاصة بك
 
-> ملف README باللغة الإنجليزية [من هنا](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/README.md)
+> ملف README باللغة الإنجليزية
+> [من هنا](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/README.md)
 
 - يتم عمل `cache` لكل عملية بحث لمدة `5` ثواني
 - هناك حد للاستخدام: `100` عملية بحث في اليوم لكل `IP`
 
-> يمكنك تعديل هذه الإعدادات من [config.js](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/config/config.js)
+> يمكنك تعديل هذه الإعدادات من
+> [config.js](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/config/config.js)
 
 ## تشغيل الـ API
 
@@ -23,7 +28,9 @@
 npm install
 ```
 
-3. تفقد ملف [config.js](https://github.com/islamic-extensions/dorar-hadith-api/blob/main/config/config.js) وقم بتعديله حسب رغبتك
+3. تفقد ملف
+   [config.js](https://github.com/islamic-extensions/dorar-hadith-api/blob/main/config/config.js)
+   وقم بتعديله حسب رغبتك
 4. تشغيل الـ `API`
 
 ```bash
@@ -103,6 +110,7 @@ npm start
     "collectionId": "رقم المجموعة",
     "bookId": "رقم الكتاب",
     "note": "ملاحظة حول الكتاب",
+    "hasChapters": "هل هذا الكتاب يحتوي على فصول أم لا",
     "english": {
       "bookName": "اسم الكتاب بالإنجليزية",
       "bookIntro": "مقدمة الكتاب بالإنجليزية"
@@ -192,7 +200,7 @@ npm start
     },
     "numberOfHadith": "عدد الأحاديث في هذا الكتاب",
     "numberOfChapters": "عدد الفصول في هذا الكتاب",
-   "isCached": "هل هذه النتائج من الـ cache أم لا"
+    "isCached": "هل هذه النتائج من الـ cache أم لا"
   },
   "data": {
     "english": {
