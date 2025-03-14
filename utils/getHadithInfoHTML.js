@@ -1,34 +1,34 @@
 module.exports = (hadith) => {
   const englishHadith = hadith
-    .querySelector('.text_details')
+    .querySelector(".text_details")
     ?.innerHTML.trim();
 
   const englishFullHadith = hadith
-    .querySelector('.english_hadith_full')
+    .querySelector(".english_hadith_full")
     ?.innerHTML.trim();
 
   const englishGrade = hadith
-    .querySelector('.english_grade')
+    .querySelector(".english_grade")
     ?.nextElementSibling.innerHTML.trim();
 
   const arabicHadith = hadith
-    .querySelector('.arabic_text_details')
+    .querySelector(".arabic_text_details")
     ?.innerHTML.trim();
 
   const arabicFullHadith = hadith
-    .querySelector('.arabic_hadith_full')
+    .querySelector(".arabic_hadith_full")
     ?.innerHTML.trim();
 
   const arabicGrade = hadith
-    .querySelector('.arabic_grade')
+    .querySelector(".arabic_grade")
     ?.innerHTML.trim();
 
   const englishHadithNarrated = hadith
-    .querySelector('.hadith_narrated')
+    .querySelector(".hadith_narrated")
     ?.innerHTML.trim();
 
   const arabicHadithNarrated = hadith
-    .querySelector('.arabic_sanad')
+    .querySelector(".arabic_sanad")
     ?.innerHTML.trim();
 
   return {

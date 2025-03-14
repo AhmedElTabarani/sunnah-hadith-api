@@ -1,24 +1,27 @@
-const nodeFetch = require('node-fetch');
-const { decode } = require('html-entities');
-const { parseHTML } = require('linkedom');
+const nodeFetch = require("node-fetch");
+const { decode } = require("html-entities");
+const { parseHTML } = require("linkedom");
 
-const catchAsync = require('../utils/catchAsync');
-const sendSuccess = require('../utils/sendSuccess');
-const cache = require('../utils/cache');
-const getReferenceValues = require('../utils/getReferenceValues');
-const getOneActualHadithContainer = require('../utils/getOneHadith');
-const getHadithInfoText = require('../utils/getHadithInfoText');
-const getHadithInfoHTML = require('../utils/getHadithInfoHTML');
-const getReferenceUrlInfo = require('../utils/getReferenceUrlInfo');
+const catchAsync = require("../utils/catchAsync");
+const sendSuccess = require("../utils/sendSuccess");
+const cache = require("../utils/cache");
+const getReferenceValues = require("../utils/getReferenceValues");
+const getOneActualHadithContainer = require("../utils/getOneHadith");
+const getHadithInfoText = require("../utils/getHadithInfoText");
+const getHadithInfoHTML = require("../utils/getHadithInfoHTML");
+const getReferenceUrlInfo = require("../utils/getReferenceUrlInfo");
+const AppError = require("../utils/AppError");
 
 class HadithSearchController {
   searchUsingSiteSunnah = catchAsync(async (req, res, next) => {
-    if (!req.query.value || req.query.value.trim() === '')
-      throw new Error(
+    if (!req.query.value || req.query.value.trim() === "") {
+      throw new AppError(
         '"value" query parameter is required, and it should not be empty',
+        400,
       );
+    }
 
-    const query = req._parsedUrl.query?.replace('value=', 'q=') || '';
+    const query = req._parsedUrl.query?.replace("value=", "q=") || "";
     const url = `https://sunnah.com/search?${query}`;
 
     if (cache.has(url)) {
@@ -33,21 +36,20 @@ class HadithSearchController {
     const html = decode(await data.text());
     const doc = parseHTML(html).document;
 
-    const allHadith = doc.querySelector('.AllHadith');
+    const allHadith = doc.querySelector(".AllHadith");
 
     if (!allHadith) {
       return sendSuccess(res, 200, [], {});
     }
 
     const totalOfHadith = +allHadith
-      .querySelector('span')
-      .textContent.split(' ')
+      .querySelector("span")
+      .textContent.split(" ")
       .at(-1);
 
-    const result = Array.from(doc.querySelectorAll('.boh')).map(
+    const result = Array.from(doc.querySelectorAll(".boh")).map(
       (info) => {
-        const [collection, book] =
-          info.querySelectorAll('.nounderline');
+        const [collection, book] = info.querySelectorAll(".nounderline");
 
         const {
           englishHadithNarrated,
@@ -75,16 +77,16 @@ class HadithSearchController {
           grade: arabicGrade,
         };
 
-        const reference = info.querySelector('.hadith_reference');
+        const reference = info.querySelector(".hadith_reference");
         const { hadithNumberInBook, hadithNumberInCollection } =
           getReferenceValues(reference);
 
         const collectionId = collection
-          .getAttribute('href')
-          .split('/')
+          .getAttribute("href")
+          .split("/")
           .at(-1);
 
-        const bookId = book.getAttribute('href').split('/').at(-1);
+        const bookId = book.getAttribute("href").split("/").at(-1);
         return {
           collection: collection.textContent.trim(),
           book: book.textContent.trim(),
@@ -124,13 +126,13 @@ class HadithSearchController {
       const { collectionId, bookId } = req.params;
       const url = `https://sunnah.com/${collectionId}/${bookId}`;
 
-      if (cache.has(url)) {
-        const result = cache.get(url);
-        return sendSuccess(res, 200, result, {
-          ...cache.get(`metadata:${url}`),
-          isCached: true,
-        });
-      }
+      // if (cache.has(url)) {
+      //   const result = cache.get(url);
+      //   return sendSuccess(res, 200, result, {
+      //     ...cache.get(`metadata:${url}`),
+      //     isCached: true,
+      //   });
+      // }
 
       const data = await nodeFetch(url);
       const html = decode(await data.text());
@@ -142,10 +144,13 @@ class HadithSearchController {
         )
         ?.textContent.trim();
 
-      const AllHadith = doc.querySelector('.AllHadith');
+      const AllHadith = doc.querySelector(".AllHadith");
 
-      const isSingleHadith =
-        AllHadith.className.includes('single_hadith');
+      if (!AllHadith) {
+        return sendSuccess(res, 200, [], {});
+      }
+
+      const isSingleHadith = AllHadith.className.includes("single_hadith");
 
       if (isSingleHadith) {
         const { result, metadata } = getOneActualHadithContainer(
@@ -166,23 +171,32 @@ class HadithSearchController {
       }
 
       const elements = AllHadith.querySelectorAll(
-        'a[name], .chapter, .echapintro, .achapintro, .actualHadithContainer',
+        "a[name], .chapter, .echapintro, .achapintro, .actualHadithContainer",
+      );
+
+      const isHasChapters = elements.some((element) =>
+        element.className.includes("chapter")
       );
 
       const groupedSections = new Map();
       let currentSection = null;
 
+      if (!isHasChapters) {
+        currentSection = "C0.0";
+        groupedSections.set(currentSection, []);
+      }
+
       elements.forEach((element) => {
         if (
-          element.tagName.toLowerCase() === 'a' &&
-          element.hasAttribute('name')
+          element.tagName.toLowerCase() === "a" &&
+          element.hasAttribute("name")
         ) {
-          const name = element.getAttribute('name');
+          const name = element.getAttribute("name");
           if (/^C\d+\.\d+$/.test(name)) {
             groupedSections.set(name, []);
             currentSection = name;
           }
-        } else if (element.tagName.toLowerCase() !== 'a') {
+        } else if (element.tagName.toLowerCase() !== "a") {
           groupedSections.get(currentSection).push(element);
         }
       });
@@ -193,12 +207,12 @@ class HadithSearchController {
           let chapter = {};
           let ahadith = [];
           for (const section of groupedSection) {
-            if (section.className.includes('chapter')) {
+            if (section.className.includes("chapter")) {
               const englishChapterName = section
-                .querySelector('.englishchapter')
+                .querySelector(".englishchapter")
                 ?.textContent.trim();
               const arabicChapterName = section
-                .querySelector('.arabicchapter')
+                .querySelector(".arabicchapter")
                 ?.textContent.trim();
               chapter = {
                 english: {
@@ -208,12 +222,12 @@ class HadithSearchController {
                   name: arabicChapterName,
                 },
               };
-            } else if (section.className.includes('achapintro')) {
+            } else if (section.className.includes("achapintro")) {
               chapter.arabic.intro = section.textContent;
-            } else if (section.className.includes('echapintro')) {
+            } else if (section.className.includes("echapintro")) {
               chapter.english.intro = section.textContent;
             } else if (
-              section.className.includes('actualHadithContainer')
+              section.className.includes("actualHadithContainer")
             ) {
               const {
                 englishHadithNarrated,
@@ -227,7 +241,7 @@ class HadithSearchController {
               } = getHadithInfoText(section);
 
               const reference = section.querySelector(
-                '.hadith_reference',
+                ".hadith_reference",
               );
               const { hadithNumberInBook, hadithNumberInCollection } =
                 getReferenceValues(reference);
@@ -268,25 +282,26 @@ class HadithSearchController {
       cache.set(url, result);
 
       const arabicBookName = doc
-        .querySelector('.book_page_arabic_name')
+        .querySelector(".book_page_arabic_name")
         ?.textContent.trim();
 
       const englishBookName = doc
-        .querySelector('.book_page_english_name')
+        .querySelector(".book_page_english_name")
         ?.textContent.trim();
 
       const englishBookIntro = doc
-        .querySelector('.ebookintro')
+        .querySelector(".ebookintro")
         ?.textContent.trim();
 
       const arabicBookIntro = doc
-        .querySelector('.abookintro')
+        .querySelector(".abookintro")
         ?.textContent.trim();
 
       const metadata = {
         collectionId,
         bookId,
         note,
+        hasChapters: isHasChapters,
         english: {
           bookName: englishBookName,
           bookIntro: englishBookIntro,

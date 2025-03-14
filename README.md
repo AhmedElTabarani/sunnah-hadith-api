@@ -1,17 +1,22 @@
 # Sunnah Hadith API
 
-This is a simple API that scrapping data from the sunnah.com website. This API provide translation of the arabic hadith in English (Mainly English)
+This is a simple API that scrapping data from the sunnah.com website. This API
+provide translation of the arabic hadith in English (Mainly English)
 
 ## Note
 
-> This repository does not depend on any server and may have frequent major changes over time. Therefore, please fork and clone it instead of relying on pulls from this repository, So I hope that you use your own version.
+> This repository does not depend on any server and may have frequent major
+> changes over time. Therefore, please fork and clone it instead of relying on
+> pulls from this repository, So I hope that you use your own version.
 
-> For Arabic README [from here](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/README_ARABIC.md)
+> For Arabic README
+> [from here](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/README_ARABIC.md)
 
 - There is a cache for `5` seconds
 - There is a rate limit: `100` requests per day for each `IP`
 
-> You can configure this in [config.js](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/config/config.js)
+> You can configure this in
+> [config.js](https://github.com/AhmedElTabarani/sunnah-hadith-api/blob/main/config/config.js)
 
 ## Installation
 
@@ -22,7 +27,9 @@ This is a simple API that scrapping data from the sunnah.com website. This API p
 npm install
 ```
 
-3. check out the [config.js](https://github.com/islamic-extensions/dorar-hadith-api/blob/main/config/config.js) file and configure it as you want
+3. check out the
+   [config.js](https://github.com/islamic-extensions/dorar-hadith-api/blob/main/config/config.js)
+   file and configure it as you want
 4. run the server
 
 ```bash
@@ -102,6 +109,7 @@ JSON Response:
     "collectionId": "collection id",
     "bookId": "book id",
     "note": "note about the book",
+    "hasChapters": "boolean value to indicate whether the book has chapters or not",
     "english": {
       "bookName": "book name in english",
       "bookIntro": "book introduction in english"
@@ -291,7 +299,7 @@ JSON Response:
 
 ## Query Parameters
 
-| Key  |             Description             |
+|    Key     |             Description             |
 | :--------: | :---------------------------------: |
 |   value    |   The text you want to search for   |
 |    page    |   The page you want to search in    |
