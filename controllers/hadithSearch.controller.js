@@ -126,13 +126,13 @@ class HadithSearchController {
       const { collectionId, bookId } = req.params;
       const url = `https://sunnah.com/${collectionId}/${bookId}`;
 
-      // if (cache.has(url)) {
-      //   const result = cache.get(url);
-      //   return sendSuccess(res, 200, result, {
-      //     ...cache.get(`metadata:${url}`),
-      //     isCached: true,
-      //   });
-      // }
+      if (cache.has(url)) {
+        const result = cache.get(url);
+        return sendSuccess(res, 200, result, {
+          ...cache.get(`metadata:${url}`),
+          isCached: true,
+        });
+      }
 
       const data = await nodeFetch(url);
       const html = decode(await data.text());
