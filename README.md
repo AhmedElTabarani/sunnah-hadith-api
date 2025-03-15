@@ -109,7 +109,6 @@ JSON Response:
     "collectionId": "collection id",
     "bookId": "book id",
     "note": "note about the book",
-    "hasChapters": "boolean value to indicate whether the book has chapters or not",
     "english": {
       "bookName": "book name in english",
       "bookIntro": "book introduction in english"
@@ -125,6 +124,7 @@ JSON Response:
   "data": [
     {
       "chapter": {
+        "id": "chapter id",
         "english": {
           "name": "chapter name in english",
           "intro": "chapter introduction in english"
@@ -166,6 +166,57 @@ JSON Response:
               "hadithInBook": "sunnah website link for this hadith in this book"
             }
           }
+        }
+      ],
+      "hasSubchapters": "boolean value to indicate whether this chapter has sub chapters or not",
+      "numberOfHadithInAllSubchapters": "number of hadiths in all sub chapters of this chapter",
+      "subchapters": [
+        {
+          "chapter": {
+            "id": "chapter id",
+            "english": {
+              "name": "chapter name in english",
+              "intro": "chapter introduction in english"
+            },
+            "arabic": {
+              "name": "chapter name in arabic",
+              "intro": "chapter introduction in arabic"
+            }
+          },
+          "numberOfHadith": "number of hadiths in this chapter",
+          "ahadith": [
+            {
+              "english": {
+                "hadithNarrated": "hadith narrated in english",
+                "hadith": "Hadith text in english, without the narrator",
+                "fullHadith": "Full hadith text in english, including the narrator",
+                "grade": "grade of hadith in english"
+              },
+              "arabic": {
+                "hadithNarrated": "hadith narrated in arabic",
+                "hadith": "Hadith text in arabic, without the narrator",
+                "fullHadith": "Full hadith text in arabic, including the narrator",
+                "grade": "grade of hadith in arabic"
+              },
+              "reference": {
+                "collectionId": "collection id",
+                "bookId": "book id",
+                "hadithNumberInBook": "number of hadith in book",
+                "hadithNumberInCollection": "number of hadith in collection",
+                "api": {
+                  "hadith": "api link for this hadith",
+                  "book": "api link for this book",
+                  "hadithInBook": "api link for this hadith in this book"
+                },
+                "sunnahWebsite": {
+                  "hadith": "sunnah website link for this hadith",
+                  "collection": "sunnah website link for this collection",
+                  "book": "sunnah website link for this book",
+                  "hadithInBook": "sunnah website link for this hadith in this book"
+                }
+              }
+            }
+          ]
         }
       ]
     }
