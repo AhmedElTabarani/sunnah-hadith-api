@@ -11,6 +11,8 @@ const getHadithInfoText = require("../utils/getHadithInfoText");
 const getHadithInfoHTML = require("../utils/getHadithInfoHTML");
 const getReferenceUrlInfo = require("../utils/getReferenceUrlInfo");
 const AppError = require("../utils/AppError");
+const extractChapterInfo = require("../utils/extractChapterInfo");
+const extractActualHadithContainer = require("../utils/extractActualHadithContainer");
 
 class HadithSearchController {
   searchUsingSiteSunnah = catchAsync(async (req, res, next) => {
@@ -171,113 +173,114 @@ class HadithSearchController {
       }
 
       const elements = AllHadith.querySelectorAll(
-        "a[name], .chapter, .echapintro, .achapintro, .actualHadithContainer",
+        "a[name], .surah, .chapter, .echapintro, .achapintro, .actualHadithContainer"
       );
 
-      const isHasChapters = elements.some((element) =>
-        element.className.includes("chapter")
-      );
-
-      const groupedSections = new Map();
-      let currentSection = null;
-
-      if (!isHasChapters) {
-        currentSection = "C0.0";
-        groupedSections.set(currentSection, []);
+      const isHasChapters = elements.some((el) => el.className.includes("chapter"));
+      
+      const chaptersMap = new Map();
+      let currentChapterId = null;
+      
+      // Determine main chapter ID from any chapter ID (converts C1.01 → C1.00)
+      function getMainChapterId(chapterId) {
+        const parts = chapterId.split('.');
+        return `${parts[0]}.00`;
       }
-
+      
+      // Check if an ID is a main chapter (ends with .00)
+      function isMainChapter(chapterId) {
+        return chapterId.endsWith('.00');
+      }
+      
+      if (!elements.some(el => el.className.includes("chapter"))) {
+        currentChapterId = "C0.00";
+        chaptersMap.set(currentChapterId, {
+          isMainChapter: true,
+          elements: [],
+          mainChapterId: currentChapterId
+        });
+      }
+      
       elements.forEach((element) => {
-        if (
-          element.tagName.toLowerCase() === "a" &&
-          element.hasAttribute("name")
-        ) {
-          const name = element.getAttribute("name");
-          if (/^C\d+\.\d+$/.test(name)) {
-            groupedSections.set(name, []);
-            currentSection = name;
-          }
-        } else if (element.tagName.toLowerCase() !== "a") {
-          groupedSections.get(currentSection).push(element);
-        }
-      });
-
-      let numberOfHadith = 0;
-      const result = Array.from(groupedSections.values()).map(
-        (groupedSection) => {
-          let chapter = {};
-          let ahadith = [];
-          for (const section of groupedSection) {
-            if (section.className.includes("chapter")) {
-              const englishChapterName = section
-                .querySelector(".englishchapter")
-                ?.textContent.trim();
-              const arabicChapterName = section
-                .querySelector(".arabicchapter")
-                ?.textContent.trim();
-              chapter = {
-                english: {
-                  name: englishChapterName,
-                },
-                arabic: {
-                  name: arabicChapterName,
-                },
-              };
-            } else if (section.className.includes("achapintro")) {
-              chapter.arabic.intro = section.textContent;
-            } else if (section.className.includes("echapintro")) {
-              chapter.english.intro = section.textContent;
-            } else if (
-              section.className.includes("actualHadithContainer")
-            ) {
-              const {
-                englishHadithNarrated,
-                englishHadith,
-                englishFullHadith,
-                englishGrade,
-                arabicHadithNarrated,
-                arabicHadith,
-                arabicFullHadith,
-                arabicGrade,
-              } = getHadithInfoText(section);
-
-              const reference = section.querySelector(
-                ".hadith_reference",
-              );
-              const { hadithNumberInBook, hadithNumberInCollection } =
-                getReferenceValues(reference);
-
-              ahadith.push({
-                english: {
-                  hadithNarrated: englishHadithNarrated,
-                  hadith: englishHadith,
-                  fullHadith: englishFullHadith,
-                  grade: englishGrade,
-                },
-                arabic: {
-                  hadithNarrated: arabicHadithNarrated,
-                  hadith: arabicHadith,
-                  fullHadith: arabicFullHadith,
-                  grade: arabicGrade,
-                },
-                reference: {
-                  ...getReferenceUrlInfo(
-                    collectionId,
-                    bookId,
-                    hadithNumberInBook,
-                    hadithNumberInCollection,
-                  ),
-                },
+        if (element.tagName.toLowerCase() === "a" && element.hasAttribute("name")) {
+          const chapterId = element.getAttribute("name");
+          
+          if (/^C\d+\.\d+$/.test(chapterId)) {
+            const isMain = isMainChapter(chapterId);
+            const mainChapterId = isMain ? chapterId : getMainChapterId(chapterId);
+            
+            // Create the main chapter if it doesn't exist
+            if (!chaptersMap.has(mainChapterId)) {
+              chaptersMap.set(mainChapterId, {
+                isMainChapter: true,
+                elements: [],
+                mainChapterId: mainChapterId
               });
             }
+            
+            // Create the subchapter if it's not a main chapter
+            if (!isMain) {
+              chaptersMap.set(chapterId, {
+                isMainChapter: false,
+                elements: [],
+                mainChapterId: mainChapterId
+              });
+            }
+            
+            currentChapterId = chapterId;
           }
-          numberOfHadith += ahadith.length;
-          return {
-            chapter,
-            numberOfHadith: ahadith.length,
-            ahadith,
-          };
-        },
-      );
+        } else if (element.tagName.toLowerCase() !== "a" && currentChapterId) {
+          // Add element to the current chapter/subchapter
+          chaptersMap.get(currentChapterId).elements.push(element);
+        }
+      });
+      
+      const numberOfHadith = elements.filter(el => el.className.includes("actualHadithContainer")).length;
+      const result = [];
+      const processedMainChapters = new Set();
+      
+      // Process each chapter/subchapter
+      for (const [chapterId, chapterData] of chaptersMap) {
+        const mainChapterId = chapterData.mainChapterId;
+        
+        // Skip if we've already processed this main chapter
+        if (processedMainChapters.has(mainChapterId)) continue;
+        
+        // Process the main chapter
+        const mainChapter = chaptersMap.get(mainChapterId);
+        const mainChapterInfo = extractChapterInfo(mainChapter.elements);
+        const mainChapterAhadith = extractActualHadithContainer(mainChapter.elements, collectionId, bookId);
+        
+        // Find all subchapters belonging to this main chapter
+        const subchapters = [];
+        for (const [id, data] of chaptersMap) {
+          if (!data.isMainChapter && data.mainChapterId === mainChapterId) {
+            const subChapterInfo = extractChapterInfo(data.elements);
+            const subChapterAhadith = extractActualHadithContainer(data.elements);
+            
+            subchapters.push({
+              chapterId: id,
+              chapter: subChapterInfo,
+              numberOfHadith: subChapterAhadith.length,
+              ahadith: subChapterAhadith
+            });
+          }
+        }
+        
+        // Add this chapter to the result
+        result.push({
+          chapterId: mainChapterId,
+          chapter: mainChapterInfo,
+          numberOfHadith: mainChapterAhadith.length,
+          ahadith: mainChapterAhadith,
+          hasSubchapters: subchapters.length > 0,
+          numberOfHadithInAllSubchapters: subchapters.reduce((acc, subchapter) => acc + subchapter.numberOfHadith, 0),
+          subchapters: subchapters,
+        });
+        
+        // Mark this main chapter as processed
+        processedMainChapters.add(mainChapterId);
+      }
 
       cache.set(url, result);
 
