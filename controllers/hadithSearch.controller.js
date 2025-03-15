@@ -175,8 +175,6 @@ class HadithSearchController {
       const elements = AllHadith.querySelectorAll(
         "a[name], .surah, .chapter, .echapintro, .achapintro, .actualHadithContainer"
       );
-
-      const isHasChapters = elements.some((el) => el.className.includes("chapter"));
       
       const chaptersMap = new Map();
       let currentChapterId = null;
@@ -235,7 +233,7 @@ class HadithSearchController {
         }
       });
       
-      const numberOfHadith = elements.filter(el => el.className.includes("actualHadithContainer")).length;
+      let numberOfHadith = 0;
       const result = [];
       const processedMainChapters = new Set();
       
@@ -250,26 +248,31 @@ class HadithSearchController {
         const mainChapter = chaptersMap.get(mainChapterId);
         const mainChapterInfo = extractChapterInfo(mainChapter.elements);
         const mainChapterAhadith = extractActualHadithContainer(mainChapter.elements, collectionId, bookId);
+
+        mainChapterInfo.id = mainChapterId;
         
         // Find all subchapters belonging to this main chapter
         const subchapters = [];
         for (const [id, data] of chaptersMap) {
           if (!data.isMainChapter && data.mainChapterId === mainChapterId) {
             const subChapterInfo = extractChapterInfo(data.elements);
-            const subChapterAhadith = extractActualHadithContainer(data.elements);
+            const subChapterAhadith = extractActualHadithContainer(data.elements, collectionId, bookId);
+
+            numberOfHadith += subChapterAhadith.length;
+
+            subChapterInfo.id = id;
             
             subchapters.push({
-              chapterId: id,
               chapter: subChapterInfo,
               numberOfHadith: subChapterAhadith.length,
               ahadith: subChapterAhadith
             });
           }
         }
-        
-        // Add this chapter to the result
+
+        numberOfHadith += mainChapterAhadith.length;
+      
         result.push({
-          chapterId: mainChapterId,
           chapter: mainChapterInfo,
           numberOfHadith: mainChapterAhadith.length,
           ahadith: mainChapterAhadith,
@@ -304,7 +307,6 @@ class HadithSearchController {
         collectionId,
         bookId,
         note,
-        hasChapters: isHasChapters,
         english: {
           bookName: englishBookName,
           bookIntro: englishBookIntro,
